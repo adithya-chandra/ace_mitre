@@ -24,6 +24,7 @@ def extract_mitre_ids(dir_path):
                          data = yaml.safe_load(yaml_file)
 
                 file_id = data.get('id','No ID')
+                file_name = data.get('name', 'No Name')
     
                 if 'metadata' in data and 'attacks' in data['metadata']:
                     files_with_attacks += 1
@@ -45,13 +46,14 @@ def extract_mitre_ids(dir_path):
                         if 'technique' in attack:
                                 technique = attack['technique']
                                 technique_id = technique.get('uid','Unknown')
-                                techniques[technique_id].append(file_id)
+                                techniques[technique_id].append({"file_id": file_id, "file_name": file_name})
                 else:
                     files_without_attacks += 1
                     ids_without_attacks.append(file_id)
 
                 file_stats.append({"file_path": file_path,
                                    "id": file_id,
+                                   "name": file_name,
                                    "has_attacks": 'Yes' if 'metadata' in data and 'attacks' in data['metadata'] else 'No'})
 
     return total_files, files_with_attacks, files_without_attacks, tactics, ctactics, techniques,file_stats, ids_with_attacks, ids_without_attacks
@@ -67,15 +69,18 @@ def calculate_color(score, max_value):
         return "#ff6666" #red
 
 def nav_json(techniques, output_file="ace_mitre_nav.json"):
-    max_value = max(len(file_ids) for file_ids in techniques.values()) if techniques else 0
+    max_value = max(len(file_details) for file_details in techniques.values()) if techniques else 0
     nav_tech = []
-    for technique_id, file_ids in techniques.items():
-        score = len(file_ids)
+    for technique_id, file_details  in techniques.items():
+        score = len(file_details)
         color = calculate_color(score, max_value) 
+        file_details_comment = ", ".join(
+            [f"{detail['file_id']} ({detail['file_name']})" for detail in file_details]
+        )
         nav_tech.append({
             "techniqueID": technique_id,
             "score": score,
-            "comment":f"Rule ID's: {', '.join(file_ids)}",
+            "comment":f"Rule Names: {file_details_comment}",
             "enabled": True,
             "color": color
             }) 
